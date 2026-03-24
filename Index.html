@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  .header { background: #1a1a1a; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 14px; }
+  .header h1 { font-size: 20px; font-weight: 600; }
+  .header .logo { background: #FFD966; color: #1a1a1a; font-weight: 700; font-size: 13px; padding: 5px 10px; border-radius: 5px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .grid { display: grid; grid-template-columns: 320px 1fr; gap: 20px; }
+
+  .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #333; }
+  .card h3 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin: 16px 0 8px; }
+
+  label.field-label { display: block; font-size: 12px; font-weight: 500; color: #555; margin-bottom: 3px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 9px 11px; border: 1px solid #ddd; border-radius: 7px;
+    font-size: 14px; margin-bottom: 12px; transition: border-color 0.2s;
+  }
+  input:focus, select:focus { outline: none; border-color: #FFD966; box-shadow: 0 0 0 3px rgba(255,217,102,0.2); }
+
+  .substance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .substance-item {
+    display: flex; align-items: center; gap: 7px; padding: 8px 10px;
+    border: 2px solid #eee; border-radius: 7px; cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .substance-item:hover { border-color: #ccc; }
+  .substance-item.active { border-color: #FFD966; background: #FFFBEB; }
+  .substance-item .check {
+    width: 18px; height: 18px; border-radius: 4px; border: 2px solid #ccc;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .substance-item.active .check { background: #FFD966; border-color: #FFD966; }
+  .substance-item.active .check::after { content: '\2713'; font-size: 12px; font-weight: 700; color: #1a1a1a; }
+  .substance-item .info { font-size: 12px; }
+  .substance-item .info .name { font-weight: 600; }
+  .substance-item .info .pct { color: #888; font-size: 11px; }
+
+  .btn {
+    width: 100%; padding: 11px; border: none; border-radius: 7px; font-size: 14px;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: #FFD966; color: #1a1a1a; }
+  .btn-primary:hover { background: #FFCD33; }
+  .btn-generate { background: #1a1a1a; color: #fff; margin-top: 8px; }
+  .btn-generate:hover { background: #333; }
+  .btn-generate:disabled { background: #999; cursor: not-allowed; }
+
+  /* Results preview */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  .preview-card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .slide-title-bar {
+    font-size: 16px; font-weight: 700; color: #1a1a1a; padding: 10px 14px;
+    background: #f9f9f9; border-radius: 7px; margin-bottom: 16px; text-align: center;
+  }
+
+  .funnel { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .funnel-box { background: #FFD966; border-radius: 8px; padding: 10px 14px; text-align: center; flex: 1; min-width: 120px; }
+  .funnel-box .num { font-size: 20px; font-weight: 700; }
+  .funnel-box .lbl { font-size: 10px; color: #555; margin-top: 1px; }
+  .funnel-arrow { font-size: 18px; color: #bbb; }
+
+  .subs-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sub-tag { padding: 5px 12px; border-radius: 16px; font-size: 11px; font-weight: 600; }
+  .sub-tag.tud { background: #DAE8FC; color: #2a5a8a; }
+  .sub-tag.aud { background: #D5E8D4; color: #3a6a3a; }
+  .sub-tag.cud { background: #E1D5E7; color: #5a3a6a; }
+  .sub-tag.oud { background: #FFE0CC; color: #8a4a2a; }
+
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .tier-card { background: #FFF8E1; border-radius: 8px; padding: 12px; text-align: center; }
+  .tier-card .t-name { font-weight: 600; font-size: 12px; }
+  .tier-card .t-num { font-size: 18px; font-weight: 700; }
+  .tier-card .t-pct { font-size: 11px; color: #888; }
+  .tier-card .t-cost { font-size: 13px; font-weight: 600; color: #555; margin-top: 3px; }
+
+  .spend-box { background: #FFF8E1; border-radius: 8px; padding: 14px; text-align: center; margin-top: 12px; }
+  .spend-box .lbl { font-size: 11px; color: #888; }
+  .spend-box .amt { font-size: 20px; font-weight: 700; }
+
+  .roi-box { background: #FFD966; border-radius: 8px; padding: 16px; text-align: center; margin-top: 12px; }
+  .roi-box .roi-num { font-size: 28px; font-weight: 800; }
+  .roi-box .roi-lbl { font-size: 11px; color: #555; }
+  .roi-box .sav-line { font-size: 12px; color: #333; margin-top: 6px; }
+  .roi-box .sav-total { font-size: 20px; font-weight: 800; margin-top: 2px; }
+
+  .values-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .values-table th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; padding: 5px 8px; border-bottom: 2px solid #eee; }
+  .values-table td { padding: 6px 8px; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+  .values-table td:last-child { font-weight: 600; text-align: right; font-family: 'SF Mono', monospace; }
+
+  .success-banner {
+    display: none; background: #D5E8D4; border: 2px solid #82B366; border-radius: 10px;
+    padding: 20px; margin-top: 16px; text-align: center;
+  }
+  .success-banner.show { display: block; }
+  .success-banner a { color: #2a5a8a; font-weight: 700; font-size: 16px; }
+  .success-banner p { margin-top: 6px; font-size: 13px; color: #555; }
+
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { color: #c0392b; font-size: 13px; margin-top: 8px; display: none; }
+
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">PELAGO</div>
+  <h1>Value Story Generator</h1>
+</div>
+
+<div class="container">
+  <div class="grid">
+    <!-- INPUT PANEL -->
+    <div>
+      <div class="card">
+        <h2>Inputs</h2>
+
+        <label class="field-label">Channel Partner</label>
+        <select id="partnerSelect" onchange="onPartnerChange()">
+          <option value="">Loading partners...</option>
+        </select>
+
+        <label class="field-label">Prospect Name</label>
+        <input type="text" id="prospectName" placeholder="e.g. PWGA">
+
+        <label class="field-label">Eligible Lives</label>
+        <input type="number" id="eligibleLives" placeholder="e.g. 19600">
+
+        <label class="field-label">Pricing Model</label>
+        <select id="pricingModel">
+          <option value="Hawaii">Hawaii</option>
+          <option value="Zanzibar">Zanzibar</option>
+        </select>
+
+        <h3>Substances on Slide</h3>
+        <div class="substance-grid">
+          <div class="substance-item active" onclick="toggleSub(this,'tud')" data-sub="tud">
+            <div class="check"></div>
+            <div class="info"><div class="name">TUD</div><div class="pct">8% of ELs</div></div>
+          </div>
+          <div class="substance-item active" onclick="toggleSub(this,'aud')" data-sub="aud">
+            <div class="check"></div>
+            <div class="info"><div class="name">AUD</div><div class="pct">10% of ELs</div></div>
+          </div>
+          <div class="substance-item active" onclick="toggleSub(this,'cud')" data-sub="cud">
+            <div class="check"></div>
+            <div class="info"><div class="name">CUD</div><div class="pct">6% of ELs</div></div>
+          </div>
+          <div class="substance-item active" onclick="toggleSub(this,'oud')" data-sub="oud">
+            <div class="check"></div>
+            <div class="info"><div class="name">OUD</div><div class="pct">2% of ELs</div></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="runCalc()">Preview Numbers</button>
+        <button class="btn btn-generate" id="generateBtn" onclick="generateSlide()" disabled>
+          Generate Slide in Google Drive
+        </button>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div>
+      <div id="placeholder" class="card" style="text-align:center; padding: 50px 20px; color: #aaa;">
+        <div style="font-size: 40px; margin-bottom: 10px;">&#128202;</div>
+        <div style="font-size: 15px;">Enter eligible lives and click <strong>Preview Numbers</strong></div>
+      </div>
+
+      <div id="results" class="results">
+        <div class="preview-card">
+          <div class="slide-title-bar" id="slideTitle"></div>
+
+          <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div style="flex:2; min-width:300px;">
+              <div class="funnel">
+                <div class="funnel-box"><div class="num" id="fEL"></div><div class="lbl">Eligible lives</div></div>
+                <div class="funnel-arrow">&rarr;</div>
+                <div class="funnel-box"><div class="num" id="fPrev"></div><div class="lbl">Prevalence (20%)</div></div>
+                <div class="funnel-arrow">&rarr;</div>
+                <div class="funnel-box"><div class="num" id="fMem"></div><div class="lbl">Program members</div></div>
+              </div>
+            </div>
+            <div style="flex:1; min-width:150px;">
+              <div class="subs-row" id="subTags"></div>
+            </div>
+          </div>
+
+          <div class="bottom-grid">
+            <div>
+              <div class="tier-card"><div class="t-name">Support</div><div class="t-num" id="tSM"></div><div class="t-pct">(56%)</div><div class="t-cost" id="tSC"></div></div>
+              <div class="tier-card" style="margin-top:8px;"><div class="t-name">Manage</div><div class="t-num" id="tMM"></div><div class="t-pct">(37%)</div><div class="t-cost" id="tMC"></div></div>
+              <div class="tier-card" style="margin-top:8px;"><div class="t-name">Treat</div><div class="t-num" id="tTM"></div><div class="t-pct">(6%)</div><div class="t-cost" id="tTC"></div></div>
+            </div>
+            <div>
+              <div class="spend-box"><div class="lbl">Year 1 Program Spend<br>@ 10% engagement</div><div class="amt" id="fSpend"></div></div>
+            </div>
+            <div>
+              <div class="roi-box">
+                <div class="roi-num" id="fRoi"></div>
+                <div class="roi-lbl">NET ROI</div>
+                <div class="sav-line" id="fSavLine"></div>
+                <div class="sav-total" id="fSavTotal"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="successBanner" class="success-banner">
+          <div>&#9989; Slide created!</div>
+          <a id="slideLink" href="#" target="_blank">Open in Google Slides</a>
+          <p>The presentation has been saved to your Google Drive.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let selectedSubs = new Set(['tud','aud','cud','oud']);
+  let lastCalc = null;
+  let partners = [];
+
+  // ── Init: load partners from sheet ──
+  google.script.run
+    .withSuccessHandler(function(data) {
+      partners = data;
+      const sel = document.getElementById('partnerSelect');
+      sel.innerHTML = '<option value="">— Select partner —</option>';
+      data.forEach(function(p) {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name + ' (' + p.pricingModel + ')';
+        opt.dataset.model = p.pricingModel;
+        sel.appendChild(opt);
+      });
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('partnerSelect').innerHTML =
+        '<option value="">Error loading partners</option>';
+    })
+    .getPartners();
+
+  function onPartnerChange() {
+    const sel = document.getElementById('partnerSelect');
+    const opt = sel.options[sel.selectedIndex];
+    if (opt && opt.dataset.model) {
+      document.getElementById('pricingModel').value = opt.dataset.model;
+    }
+  }
+
+  function toggleSub(el, sub) {
+    if (selectedSubs.has(sub)) { selectedSubs.delete(sub); el.classList.remove('active'); }
+    else { selectedSubs.add(sub); el.classList.add('active'); }
+    if (lastCalc) updatePreview(lastCalc);
+  }
+
+  function fmt(n) { return n.toLocaleString('en-US'); }
+  function fmtD(n) { return '$' + n.toLocaleString('en-US'); }
+  function fmtM(n) { return '$' + (n / 1e6).toFixed(1) + 'M'; }
+
+  // ── Preview ──
+  function runCalc() {
+    const el = parseInt(document.getElementById('eligibleLives').value);
+    const pm = document.getElementById('pricingModel').value;
+    if (!el || el <= 0) { showError('Please enter a valid number of eligible lives.'); return; }
+    hideError();
+
+    google.script.run
+      .withSuccessHandler(function(c) {
+        lastCalc = c;
+        updatePreview(c);
+        document.getElementById('generateBtn').disabled = false;
+      })
+      .withFailureHandler(function(err) { showError('Calculation failed: ' + err.message); })
+      .calculate(el, pm);
+  }
+
+  function updatePreview(c) {
+    var prospect = document.getElementById('prospectName').value || 'Prospect';
+
+    document.getElementById('slideTitle').textContent =
+      fmt(c.members) + ' Members Engaged, ' + fmtM(c.savings) + ' Saved \u2014 Year 1 ROI: ' + c.roi.toFixed(1) + ' : 1';
+
+    document.getElementById('fEL').textContent = fmt(c.eligibleLives);
+    document.getElementById('fPrev').textContent = fmt(c.atRisk) + ' (20%)';
+    document.getElementById('fMem').textContent = fmt(c.members);
+
+    document.getElementById('tSM').textContent = fmt(c.supM);
+    document.getElementById('tSC').textContent = fmtD(c.supC);
+    document.getElementById('tMM').textContent = fmt(c.manM);
+    document.getElementById('tMC').textContent = fmtD(c.manC);
+    document.getElementById('tTM').textContent = fmt(c.trtM);
+    document.getElementById('tTC').textContent = fmtD(c.trtC);
+
+    document.getElementById('fSpend').textContent = fmtD(c.spend);
+    document.getElementById('fRoi').textContent = c.roi.toFixed(1) + ' : 1';
+    document.getElementById('fSavLine').textContent = fmt(c.members) + ' engaged \u00D7 $11,289 avg. savings =';
+    document.getElementById('fSavTotal').textContent = fmtM(c.savings) + ' in savings';
+
+    // Substance tags
+    var tagsEl = document.getElementById('subTags');
+    var SUBS = { tud: ['TUD','8% of ELs TUD risk','tud'], aud: ['AUD','10% of ELs AUD risk','aud'], cud: ['CUD','6% of ELs CUD risk','cud'], oud: ['OUD','2% of ELs OUD risk','oud'] };
+    tagsEl.innerHTML = '';
+    ['tud','aud','cud','oud'].forEach(function(s) {
+      if (selectedSubs.has(s)) {
+        var d = document.createElement('div');
+        d.className = 'sub-tag ' + SUBS[s][2];
+        d.textContent = SUBS[s][1];
+        tagsEl.appendChild(d);
+      }
+    });
+
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('results').classList.add('show');
+    document.getElementById('successBanner').classList.remove('show');
+  }
+
+  // ── Generate Slide ──
+  function generateSlide() {
+    var btn = document.getElementById('generateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Generating...';
+    hideError();
+
+    var params = {
+      prospectName: document.getElementById('prospectName').value || 'Prospect',
+      partnerName: document.getElementById('partnerSelect').value || 'Partner',
+      eligibleLives: parseInt(document.getElementById('eligibleLives').value),
+      pricingModel: document.getElementById('pricingModel').value,
+      substances: Array.from(selectedSubs),
+    };
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+        btn.innerHTML = 'Generate Slide in Google Drive';
+        btn.disabled = false;
+        var banner = document.getElementById('successBanner');
+        var link = document.getElementById('slideLink');
+        link.href = result.url;
+        link.textContent = 'Open: ' + result.title;
+        banner.classList.add('show');
+      })
+      .withFailureHandler(function(err) {
+        btn.innerHTML = 'Generate Slide in Google Drive';
+        btn.disabled = false;
+        showError('Failed to generate slide: ' + err.message);
+      })
+      .generateSlideV2(params);
+  }
+
+  function showError(msg) { var e = document.getElementById('errorMsg'); e.textContent = msg; e.style.display = 'block'; }
+  function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+</script>
+</body>
+</html>

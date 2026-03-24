@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pelago Value Story Calculator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  .header { background: #1a1a1a; color: #fff; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header .logo { background: #FFD966; color: #1a1a1a; font-weight: 700; font-size: 14px; padding: 6px 12px; border-radius: 6px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .grid { display: grid; grid-template-columns: 340px 1fr; gap: 24px; }
+
+  .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #333; }
+  .card h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin: 20px 0 10px; }
+
+  label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 4px; }
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px;
+    font-size: 15px; margin-bottom: 14px; transition: border-color 0.2s;
+  }
+  input:focus, select:focus { outline: none; border-color: #FFD966; box-shadow: 0 0 0 3px rgba(255,217,102,0.2); }
+
+  .substance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .substance-item {
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    border: 2px solid #eee; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .substance-item:hover { border-color: #ccc; }
+  .substance-item.active { border-color: #FFD966; background: #FFFBEB; }
+  .substance-item input { display: none; }
+  .substance-item .check {
+    width: 20px; height: 20px; border-radius: 4px; border: 2px solid #ccc;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;
+  }
+  .substance-item.active .check { background: #FFD966; border-color: #FFD966; }
+  .substance-item.active .check::after { content: '✓'; font-size: 13px; font-weight: 700; color: #1a1a1a; }
+  .substance-item .info { font-size: 13px; }
+  .substance-item .info .name { font-weight: 600; }
+  .substance-item .info .pct { color: #888; font-size: 12px; }
+
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: #FFD966; color: #1a1a1a; }
+  .btn-primary:hover { background: #FFCD33; }
+  .btn-secondary { background: #f0f0f0; color: #333; margin-top: 8px; }
+  .btn-secondary:hover { background: #e0e0e0; }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  .slide-preview {
+    background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .slide-title {
+    font-size: 18px; font-weight: 700; color: #1a1a1a; padding: 12px 16px;
+    background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; text-align: center;
+  }
+
+  .funnel { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .funnel-box {
+    background: #FFD966; border-radius: 10px; padding: 14px; text-align: center;
+  }
+  .funnel-box .num { font-size: 24px; font-weight: 700; }
+  .funnel-box .label { font-size: 11px; color: #555; margin-top: 2px; }
+  .funnel-arrow { font-size: 20px; color: #ccc; text-align: center; }
+
+  .substances-display { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; justify-content: flex-end; }
+  .sub-tag {
+    padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  }
+  .sub-tag.tud { background: #DAE8FC; color: #2a5a8a; }
+  .sub-tag.aud { background: #D5E8D4; color: #3a6a3a; }
+  .sub-tag.cud { background: #E1D5E7; color: #5a3a6a; }
+  .sub-tag.oud { background: #FFE0CC; color: #8a4a2a; }
+
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .tier-card { background: #FFF8E1; border-radius: 10px; padding: 16px; text-align: center; }
+  .tier-card .tier-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .tier-card .tier-members { font-size: 20px; font-weight: 700; }
+  .tier-card .tier-pct { font-size: 12px; color: #888; }
+  .tier-card .tier-cost { font-size: 14px; font-weight: 600; margin-top: 4px; color: #555; }
+
+  .spend-box { background: #FFF8E1; border-radius: 10px; padding: 16px; text-align: center; margin-top: 16px; }
+  .spend-box .label { font-size: 12px; color: #888; }
+  .spend-box .amount { font-size: 22px; font-weight: 700; }
+
+  .roi-box {
+    background: #FFD966; border-radius: 10px; padding: 20px; text-align: center; margin-top: 16px;
+  }
+  .roi-box .roi-num { font-size: 32px; font-weight: 800; }
+  .roi-box .roi-label { font-size: 12px; color: #555; margin-top: 2px; }
+  .roi-box .savings-line { font-size: 13px; color: #333; margin-top: 8px; }
+  .roi-box .savings-total { font-size: 24px; font-weight: 800; margin-top: 4px; }
+
+  .values-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+  .values-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; padding: 6px 10px; border-bottom: 2px solid #eee; }
+  .values-table td { padding: 8px 10px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+  .values-table td:last-child { font-weight: 600; text-align: right; font-family: 'SF Mono', 'Fira Code', monospace; }
+  .values-table tr:hover { background: #fafafa; }
+
+  .copy-toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1a1a1a; color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: 14px; font-weight: 500; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+  }
+  .copy-toast.show { opacity: 1; }
+
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+    .funnel { grid-template-columns: 1fr; }
+    .funnel-arrow { transform: rotate(90deg); }
+    .bottom-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">PELAGO</div>
+  <h1>Value Story Calculator</h1>
+</div>
+
+<div class="container">
+  <div class="grid">
+    <!-- INPUT PANEL -->
+    <div>
+      <div class="card">
+        <h2>Inputs</h2>
+
+        <label>Prospect Name</label>
+        <input type="text" id="prospectName" placeholder="e.g. PWGA" value="">
+
+        <label>Eligible Lives</label>
+        <input type="number" id="eligibleLives" placeholder="e.g. 19600" value="">
+
+        <label>Pricing Model</label>
+        <select id="pricingModel">
+          <option value="Hawaii">Hawaii</option>
+          <option value="Zanzibar">Zanzibar</option>
+        </select>
+
+        <h3>Substances to Show on Slide</h3>
+        <div class="substance-grid">
+          <label class="substance-item active" onclick="toggleSub(this, 'tud')">
+            <input type="checkbox" checked data-sub="tud">
+            <div class="check"></div>
+            <div class="info"><div class="name">TUD</div><div class="pct">8% of ELs</div></div>
+          </label>
+          <label class="substance-item active" onclick="toggleSub(this, 'aud')">
+            <input type="checkbox" checked data-sub="aud">
+            <div class="check"></div>
+            <div class="info"><div class="name">AUD</div><div class="pct">10% of ELs</div></div>
+          </label>
+          <label class="substance-item active" onclick="toggleSub(this, 'cud')">
+            <input type="checkbox" checked data-sub="cud">
+            <div class="check"></div>
+            <div class="info"><div class="name">CUD</div><div class="pct">6% of ELs</div></div>
+          </label>
+          <label class="substance-item active" onclick="toggleSub(this, 'oud')">
+            <input type="checkbox" checked data-sub="oud">
+            <div class="check"></div>
+            <div class="info"><div class="name">OUD</div><div class="pct">2% of ELs</div></div>
+          </label>
+        </div>
+
+        <button class="btn btn-primary" onclick="calculate()">Calculate</button>
+        <button class="btn btn-secondary" onclick="copyValues()">Copy All Values</button>
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div>
+      <div id="placeholder" class="card" style="text-align:center; padding: 60px 24px; color: #aaa;">
+        <div style="font-size: 48px; margin-bottom: 12px;">📊</div>
+        <div style="font-size: 16px;">Enter eligible lives and click <strong>Calculate</strong></div>
+      </div>
+
+      <div id="results" class="results">
+        <!-- Slide Preview -->
+        <div class="slide-preview">
+          <div class="slide-title" id="slideTitle"></div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+            <div>
+              <div class="funnel">
+                <div class="funnel-box">
+                  <div class="num" id="fEligible"></div>
+                  <div class="label">Eligible lives at <span id="fProspect"></span></div>
+                </div>
+                <div class="funnel-arrow">→</div>
+                <div class="funnel-box">
+                  <div class="num" id="fPrevalence"></div>
+                  <div class="label">Estimated prevalence (20%)</div>
+                </div>
+                <div class="funnel-arrow">→</div>
+                <div class="funnel-box">
+                  <div class="num" id="fMembers"></div>
+                  <div class="label">Program members yr 1</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div id="substanceTags" class="substances-display"></div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+            <div>
+              <div class="bottom-row" style="grid-template-columns: 1fr 1fr 1fr;">
+                <div class="tier-card">
+                  <div class="tier-name">Support</div>
+                  <div class="tier-members" id="tSupMembers"></div>
+                  <div class="tier-pct">(56%)</div>
+                  <div class="tier-cost" id="tSupCost"></div>
+                </div>
+                <div class="tier-card">
+                  <div class="tier-name">Manage</div>
+                  <div class="tier-members" id="tManMembers"></div>
+                  <div class="tier-pct">(37%)</div>
+                  <div class="tier-cost" id="tManCost"></div>
+                </div>
+                <div class="tier-card">
+                  <div class="tier-name">Treat</div>
+                  <div class="tier-members" id="tTrtMembers"></div>
+                  <div class="tier-pct">(6%)</div>
+                  <div class="tier-cost" id="tTrtCost"></div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="spend-box">
+                <div class="label">Year 1 Program Spend @ 10% engagement</div>
+                <div class="amount" id="fSpend"></div>
+              </div>
+            </div>
+            <div>
+              <div class="roi-box">
+                <div class="roi-num" id="fRoi"></div>
+                <div class="roi-label">NET ROI</div>
+                <div class="savings-line" id="fSavingsLine"></div>
+                <div class="savings-total" id="fSavingsTotal"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Raw Values Table -->
+        <div class="card" style="margin-top: 16px;">
+          <h2>All Slide Values</h2>
+          <table class="values-table">
+            <thead><tr><th>Field</th><th>Value</th></tr></thead>
+            <tbody id="valuesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="copy-toast">Copied to clipboard!</div>
+
+<script>
+const PRICING = {
+  Hawaii:   { support: 995,  manage: 2995, treat: 3995 },
+  Zanzibar: { support: 495,  manage: 2995, treat: 3495 },
+};
+
+const SUBSTANCES = {
+  tud: { name: 'TUD', pct: 8, label: '8% of ELs TUD risk', cls: 'tud' },
+  aud: { name: 'AUD', pct: 10, label: '10% of ELs AUD risk', cls: 'aud' },
+  cud: { name: 'CUD', pct: 6, label: '6% of ELs CUD risk', cls: 'cud' },
+  oud: { name: 'OUD', pct: 2, label: '2% of ELs OUD risk', cls: 'oud' },
+};
+
+let selectedSubs = new Set(['tud', 'aud', 'cud', 'oud']);
+let lastResult = null;
+
+function toggleSub(el, sub) {
+  const cb = el.querySelector('input');
+  if (selectedSubs.has(sub)) {
+    selectedSubs.delete(sub);
+    el.classList.remove('active');
+    cb.checked = false;
+  } else {
+    selectedSubs.add(sub);
+    el.classList.add('active');
+    cb.checked = true;
+  }
+  if (lastResult) calculate();
+}
+
+function fmt(n) { return n.toLocaleString('en-US'); }
+function fmtDollars(n) { return '$' + n.toLocaleString('en-US'); }
+function fmtMillions(n) { return '$' + (n / 1e6).toFixed(1) + 'M'; }
+
+function calculate() {
+  const eligibleLives = parseInt(document.getElementById('eligibleLives').value);
+  const pricingModel = document.getElementById('pricingModel').value;
+  const prospectName = document.getElementById('prospectName').value || 'Prospect';
+  const prices = PRICING[pricingModel];
+
+  if (!eligibleLives || eligibleLives <= 0) {
+    alert('Please enter a valid number of eligible lives.');
+    return;
+  }
+
+  const atRisk = Math.round(eligibleLives * 0.20);
+  const members = Math.round(atRisk * 0.10);
+
+  const supM = Math.round(members * 0.56);
+  const manM = Math.round(members * 0.37);
+  const trtM = Math.round(members * 0.06);
+
+  const supC = supM * prices.support;
+  const manC = manM * prices.manage;
+  const trtC = trtM * prices.treat;
+
+  const spend = supC + manC + trtC;
+  const savings = members * 11289;
+  const roi = spend > 0 ? Math.round((savings / spend) * 10) / 10 : 0;
+
+  lastResult = {
+    prospectName, eligibleLives, pricingModel,
+    atRisk, members, supM, manM, trtM,
+    supC, manC, trtC, spend, savings, roi,
+    substances: [...selectedSubs],
+  };
+
+  // Update preview
+  document.getElementById('slideTitle').textContent =
+    `${fmt(members)} Members Engaged, ${fmtMillions(savings)} Saved — Year 1 ROI: ${roi.toFixed(1)} : 1`;
+
+  document.getElementById('fEligible').textContent = fmt(eligibleLives);
+  document.getElementById('fProspect').textContent = prospectName;
+  document.getElementById('fPrevalence').textContent = `${fmt(atRisk)} (20%)`;
+  document.getElementById('fMembers').textContent = fmt(members);
+
+  document.getElementById('tSupMembers').textContent = fmt(supM);
+  document.getElementById('tSupCost').textContent = fmtDollars(supC);
+  document.getElementById('tManMembers').textContent = fmt(manM);
+  document.getElementById('tManCost').textContent = fmtDollars(manC);
+  document.getElementById('tTrtMembers').textContent = fmt(trtM);
+  document.getElementById('tTrtCost').textContent = fmtDollars(trtC);
+
+  document.getElementById('fSpend').textContent = fmtDollars(spend);
+  document.getElementById('fRoi').textContent = `${roi.toFixed(1)} : 1`;
+  document.getElementById('fSavingsLine').textContent =
+    `${fmt(members)} engaged × $11,289 avg. savings =`;
+  document.getElementById('fSavingsTotal').textContent = `${fmtMillions(savings)} in savings`;
+
+  // Substance tags
+  const tagsEl = document.getElementById('substanceTags');
+  tagsEl.innerHTML = '';
+  ['tud', 'aud', 'cud', 'oud'].forEach(s => {
+    if (selectedSubs.has(s)) {
+      const tag = document.createElement('div');
+      tag.className = `sub-tag ${SUBSTANCES[s].cls}`;
+      tag.textContent = SUBSTANCES[s].label;
+      tagsEl.appendChild(tag);
+    }
+  });
+
+  // Values table
+  const rows = [
+    ['Title', `${fmt(members)} Members Engaged, ${fmtMillions(savings)} Saved — Year 1 ROI: ${roi.toFixed(1)} : 1`],
+    ['Eligible Lives', fmt(eligibleLives)],
+    ['Prevalence', `${fmt(atRisk)} (20%)`],
+    ['Program Members', fmt(members)],
+    ['Support Members', `${fmt(supM)} (56%)`],
+    ['Support Cost', fmtDollars(supC)],
+    ['Manage Members', `${fmt(manM)} (37%)`],
+    ['Manage Cost', fmtDollars(manC)],
+    ['Treat Members', `${fmt(trtM)} (6%)`],
+    ['Treat Cost', fmtDollars(trtC)],
+    ['Program Spend', fmtDollars(spend)],
+    ['Total Savings', fmtDollars(savings)],
+    ['Total Savings (short)', fmtMillions(savings)],
+    ['NET ROI', `${roi.toFixed(1)} : 1`],
+    ['ROI Box', `${roi.toFixed(1)} : 1 NET ROI`],
+    ['Savings Line', `${fmt(members)} engaged * $11,289 avg. savings =`],
+    ['Savings Total', `${fmtMillions(savings)} in savings`],
+    ['Substances', [...selectedSubs].map(s => SUBSTANCES[s].name).join(', ')],
+    ['Pricing Model', pricingModel],
+  ];
+
+  const tbody = document.getElementById('valuesBody');
+  tbody.innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('');
+
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('results').classList.add('show');
+}
+
+function copyValues() {
+  if (!lastResult) { alert('Run the calculation first.'); return; }
+  const r = lastResult;
+  const text = [
+    `Prospect: ${r.prospectName}`,
+    `Eligible Lives: ${fmt(r.eligibleLives)}`,
+    `Pricing Model: ${r.pricingModel}`,
+    `Substances: ${r.substances.map(s => SUBSTANCES[s].name).join(', ')}`,
+    ``,
+    `Prevalence: ${fmt(r.atRisk)} (20%)`,
+    `Program Members: ${fmt(r.members)}`,
+    ``,
+    `Support: ${fmt(r.supM)} (56%) — ${fmtDollars(r.supC)}`,
+    `Manage: ${fmt(r.manM)} (37%) — ${fmtDollars(r.manC)}`,
+    `Treat: ${fmt(r.trtM)} (6%) — ${fmtDollars(r.trtC)}`,
+    ``,
+    `Program Spend: ${fmtDollars(r.spend)}`,
+    `Total Savings: ${fmtDollars(r.savings)} (${fmtMillions(r.savings)})`,
+    `NET ROI: ${r.roi.toFixed(1)} : 1`,
+    ``,
+    `Title: ${fmt(r.members)} Members Engaged, ${fmtMillions(r.savings)} Saved — Year 1 ROI: ${r.roi.toFixed(1)} : 1`,
+  ].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  });
+}
+</script>
+</body>
+</html>
