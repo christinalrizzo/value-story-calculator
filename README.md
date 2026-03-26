@@ -1,83 +1,113 @@
-# Pelago Value Story Generator — Setup Guide
+# value-story-calculator-slide
 
-## What This Does
+Pelago Value Story Generator â a Google Apps Script web app that calculates ROI projections and generates branded Google Slides from a template.
 
-A hosted web app where anyone on your team can:
+## What It Does
 
-1. Select a channel partner (auto-sets pricing model)
-2. Enter eligible lives and prospect name
-3. Check/uncheck which substances (TUD, AUD, CUD, OUD) to show
-4. Preview all the calculated numbers
-5. Click **Generate Slide** — it copies the template into their Google Drive with every value filled in
-
-## Setup Steps (10 minutes)
-
-### 1. Create the Apps Script Project
-
-1. Go to [script.google.com](https://script.google.com)
-2. Click **New project**
-3. Rename it to "Pelago Value Story Generator"
-
-### 2. Add the Code
-
-**Code.gs** (replace the default contents):
-- Open the `Code.gs` file provided and paste the entire contents into the script editor
-
-**Index.html** (add a new file):
-- Click the **+** next to "Files" → select **HTML**
-- Name it `Index` (no extension)
-- Paste the entire contents of the `Index.html` file provided
-
-### 3. Update the Template ID
-
-In `Code.gs`, find the `CONFIG` object at the top and update:
-
-- `TEMPLATE_ID` — the Google Slides template with X placeholders. Use the file ID from its URL (the part between `/d/` and `/edit`)
-- `SHEET_ID` — your Channel Partner Configurations sheet ID (already set to your current sheet)
-
-**Important:** The Google account deploying this must have edit access to the template and the config sheet.
-
-### 4. Deploy as Web App
-
-1. Click **Deploy** → **New deployment**
-2. Click the gear icon → select **Web app**
-3. Set:
-   - **Description**: "Value Story Generator v1"
-   - **Execute as**: "User accessing the web app" ← this is key so slides go into each person's own Drive
-   - **Who has access**: "Anyone within [your org]" (or specific people)
-4. Click **Deploy**
-5. **Authorize** when prompted (grant access to Drive, Slides, Sheets)
-6. Copy the web app URL — that's what you share with Todd's team
-
-### 5. Share the Template
-
-Make sure the template presentation is shared with "Anyone in your org can view" (or at minimum, with everyone who will use the tool). They need at least view access to make a copy.
-
-### 6. Share the Config Sheet
-
-Same — the config sheet needs to be viewable by anyone using the tool so the partner list loads.
-
-## How It Works
-
-- **Partner dropdown** pulls live from your Google Sheet (only "Active" partners)
-- **Preview Numbers** runs the calculation server-side and shows a visual preview
-- **Generate Slide** calls `makeCopy()` on the template, then uses `replaceAllText()` via the Slides API to fill every placeholder
-- Unselected substances get their tag shapes deleted from the copy
-- The new presentation lands in the user's own Google Drive
-
-## Adding New Partners
-
-Just add a row to the [Channel Partner Configurations](https://docs.google.com/spreadsheets/d/1YnoKU-WW7J8dfbID-ee8_lG6g2h-Wdbk3xmJsOWewJk) sheet:
-
-| Partner Name | Pricing Model | Status | Notes |
-|---|---|---|---|
-| NewPartner | Hawaii | Active | Any notes here |
-
-It shows up in the dropdown immediately — no code changes needed.
+1. User enters channel partner name and prospect name
+2. Enters eligible lives and selects pricing model
+3. Checks/unchecks which substances (TUD, AUD, CUD, OUD) to include
+4. Previews all calculated numbers before generating
+5. Clicks **Generate Slide** â duplicates the template into their Google Drive with every value populated
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `Code.gs` | Backend: calculations, Slides API, partner lookup |
-| `Index.html` | Frontend: calculator form + slide preview |
+| `Code.gs` | Apps Script backend â calculations, Slides API, slide generation |
+| `Index.html` | Web app frontend â calculator form, number preview, generate button |
+| `appsscript.json` | Apps Script manifest â OAuth scopes, runtime config |
+| `.clasp.json` | clasp config â links this repo to your Apps Script project |
+
+## Configuration
+
+In `Code.gs`, update the `CONFIG` object:
+
+- `TEMPLATE_ID` â Google Slides template file ID (the part between `/d/` and `/edit` in the URL)
+
+### Pricing Models
+
+**Hawaii:** Support $995, Manage $2,995, Treat $3,995
+
+**Zanzibar:** Support $495, Manage $2,995, Treat $3,495
+
+### Standard Constants
+
+- SUD prevalence: 20%
+- Engagement rate: 10%
+- Tier split: Support 56%, Manage 37%, Treat 6%
+- Avg savings per member: $11,289
+
+## Setup & Deployment
+
+### Prerequisites
+
+- Node.js installed
+- A Google account with access to the template slide and config sheet
+
+### First-time Setup
+
+```bash
+# 1. Install clasp globally
+npm install -g @google/clasp
+
+# 2. Log in to your Google account
+clasp login
+
+# 3. Create a new Apps Script project (run from repo root)
+clasp create --type webapp --title "Pelago Value Story Generator"
+```
+
+This creates a `.clasp.json` file with your project's `scriptId`. Commit it to the repo.
+
+### Push Code to Apps Script
+
+```bash
+# Push all files to your Apps Script project
+clasp push
+```
+
+This uploads `Code.gs`, `Index.html`, and `appsscript.json` to the linked Apps Script project.
+
+### Deploy the Web App
+
+```bash
+# Create a new deployment
+clasp deploy --description "v1.0"
+```
+
+Or deploy from the Apps Script editor:
+
+1. `clasp open` (opens the project in your browser)
+2. **Deploy** â **New deployment** â **Web app**
+   - Execute as: **User accessing the web app**
+   - Access: **Anyone within your org**
+3. Authorize when prompted
+4. Share the web app URL with the team
+
+### Ongoing Workflow
+
+```bash
+# Edit files locally in your repo, then push
+clasp push
+
+# Update an existing deployment
+clasp deploy --deploymentId <ID> --description "v1.1"
+
+# Pull remote changes (if someone edits in the Apps Script editor)
+clasp pull
+```
+
+### Required Permissions
+
+The deploying account needs:
+- **View** access to the template presentation
+- Users need **View** access to the template (so they can copy it)
+
+## How the Slide Population Works
+
+The template slide has placeholder text (X's) that get replaced:
+
+1. **Unique patterns** are replaced globally across the slide (e.g. `X.X : 1 NET ROI`, `$XXM in savings`)
+2. **Ambiguous patterns** (e.g. `XXX`, `$XXXXXX`) are replaced per-shape by identifying each text box by its context (looks for keywords like "Support", "56%", "program spend", etc.)
+3. **Substance tags** â shapes containing unselected substance text are deleted from the copy
